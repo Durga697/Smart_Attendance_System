@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Live Face Recognition - Smart Attendance System{% endblock %}
+
+{% block head %}
+<style>
+    .recognize-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 2rem;
+    }
+
+    @media (max-width: 992px) {
+        .recognize-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        background: #000;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        aspect-ratio: 16/9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--border-glass);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    #webcamVideo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1); /* Mirror view for natural camera reflection */
+    }
+
+    .scanner-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .scan-box {
+        width: 60%;
+        height: 70%;
+        border: 2px dashed rgba(99, 102, 241, 0.6);
+        border-radius: 20px;
+        position: relative;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+    }
+
+    .scan-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--secondary), transparent);
+        box-shadow: 0 0 15px var(--secondary);
+        animation: scanAnim 3s infinite linear;
+    }
+
+    @keyframes scanAnim {
+        0% { top: 0%; }
+        50% { top: 100%; }
+        100% { top: 0%; }
+    }
+
+    .status-badge {
+        position: absolute;
+        top: 1.25rem;
+        left: 1.25rem;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(10px);
+        padding: 0.6rem 1.1rem;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid var(--border-glass);
+        z-index: 10;
+    }
+
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 10px var(--success);
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.8); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+
+    .camera-controls {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .feed-panel {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .feed-header {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .feed-logs {
+        flex: 1;
+        max-height: 480px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding-right: 0.5rem;
+    }
+
+    .log-card {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid var(--border-glass);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-card.success {
+        border-left: 4px solid var(--success);
+        background: rgba(16, 185, 129, 0.08);
+    }
+
+    .log-card.duplicate {
+        border-left: 4px solid var(--warning);
+        background: rgba(245, 158, 11, 0.08);
+    }
+
+    .log-card.unknown {
+        border-left: 4px solid var(--error);
+        background: rgba(239, 68, 68, 0.08);
+    }
+
+    .log-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .log-info h4 {
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .log-info p {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.15rem;
+    }
+
+    .log-time {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="recognize-grid">
+    <!-- Camera Viewport Card -->
+    <div>
+        <div class="video-container">
+            <div class="status-badge" id="statusBadge">
+                <div class="pulse-dot" id="pulseDot"></div>
+                <span id="statusText">Initializing Camera...</span>
+            </div>
+
+            <video id="webcamVideo" autoplay playsinline muted></video>
+            <canvas id="captureCanvas" style="display:none;"></canvas>
+
+            <div class="scanner-overlay">
+                <div class="scan-box">
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="camera-controls">
+            <button id="toggleCamBtn" class="btn btn-primary" onclick="toggleCamera()">
+                <i class="fa-solid fa-video-slash"></i> Stop Camera
+            </button>
+            <button class="btn btn-secondary" onclick="clearLogs()">
+                <i class="fa-solid fa-trash-can"></i> Clear Activity Log
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Activity Log Sidebar -->
+    <div class="card feed-panel">
+        <div class="feed-header">
+            <span><i class="fa-solid fa-bolt me-2" style="color: var(--secondary);"></i> Live Activity Log</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);" id="logCount">0 events</span>
+        </div>
+
+        <div class="feed-logs" id="feedLogs">
+            <div id="emptyLogState" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                <i class="fa-solid fa-face-viewfinder" style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <p>Position your face in front of the camera to begin automatic attendance tracking.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let videoStream = null;
+    let processInterval = null;
+    let isProcessingFrame = false;
+    let logCounter = 0;
+
+    const video = document.getElementById('webcamVideo');
+    const canvas = document.getElementById('captureCanvas');
+    const statusText = document.getElementById('statusText');
+    const pulseDot = document.getElementById('pulseDot');
+    const toggleCamBtn = document.getElementById('toggleCamBtn');
+    const feedLogs = document.getElementById('feedLogs');
+    const emptyLogState = document.getElementById('emptyLogState');
+
+    async function startCamera() {
+        try {
+            statusText.innerText = "Requesting Camera Access...";
+            videoStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } 
+            });
+            video.srcObject = videoStream;
+            
+            video.onloadedmetadata = () => {
+                statusText.innerText = "Live Recognition Active";
+                pulseDot.style.background = "var(--success)";
+                pulseDot.style.boxShadow = "0 0 10px var(--success)";
+                toggleCamBtn.innerHTML = '<i class="fa-solid fa-video-slash"></i> Stop Camera';
+                toggleCamBtn.className = "btn btn-secondary";
+                
+                // Start background frame sending loop every 1.5 seconds
+                if (!processInterval) {
+                    processInterval = setInterval(captureAndProcessFrame, 1500);
+                }
+            };
+        } catch (err) {
+            console.error("Camera access error:", err);
+            statusText.innerText = "Camera Access Error";
+            pulseDot.style.background = "var(--error)";
+            pulseDot.style.boxShadow = "0 0 10px var(--error)";
+            alert("Unable to access webcam. Please ensure camera permissions are allowed in your browser.");
+        }
+    }
+
+    function stopCamera() {
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+        }
+        if (processInterval) {
+            clearInterval(processInterval);
+            processInterval = null;
+        }
+        video.srcObject = null;
+        statusText.innerText = "Camera Paused";
+        pulseDot.style.background = "var(--warning)";
+        pulseDot.style.boxShadow = "0 0 10px var(--warning)";
+        toggleCamBtn.innerHTML = '<i class="fa-solid fa-video"></i> Start Camera';
+        toggleCamBtn.className = "btn btn-primary";
+    }
+
+    function toggleCamera() {
+        if (videoStream) {
+            stopCamera();
+        } else {
+            startCamera();
+        }
+    }
+
+    async function captureAndProcessFrame() {
+        if (!videoStream || isProcessingFrame) return;
+        
+        isProcessingFrame = true;
+        
+        try {
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            const response = await fetch("{{ url_for('process_frame') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(result => handleRecognitionResult(result));
+                }
+            }
+        } catch (err) {
+            console.error("Error processing camera frame:", err);
+        } finally {
+            isProcessingFrame = false;
+        }
+    }
+
+    function handleRecognitionResult(res) {
+        if (emptyLogState) emptyLogState.remove();
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const logCard = document.createElement('div');
+        logCounter++;
+
+        let statusClass = "unknown";
+        let iconHtml = '<i class="fa-solid fa-circle-question" style="color:#ef4444;"></i>';
+        let titleText = "Unknown Face";
+        let subtitleText = "Face not recognized in database";
+
+        if (res.name !== "Unknown") {
+            if (res.attendance_marked) {
+                statusClass = "success";
+                iconHtml = '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>';
+                titleText = res.name;
+                subtitleText = `Attendance Marked (${res.student_id})`;
+            } else {
+                statusClass = "duplicate";
+                iconHtml = '<i class="fa-solid fa-clock-rotate-left" style="color:#f59e0b;"></i>';
+                titleText = res.name;
+                subtitleText = res.message || `Already marked today (${res.student_id})`;
+            }
+        }
+
+        logCard.className = `log-card ${statusClass}`;
+        logCard.innerHTML = `
+            <div class="log-icon">${iconHtml}</div>
+            <div class="log-info">
+                <h4>${titleText}</h4>
+                <p>${subtitleText}</p>
+            </div>
+            <div class="log-time">${timeStr}</div>
+        `;
+
+        feedLogs.insertBefore(logCard, feedLogs.firstChild);
+        document.getElementById('logCount').innerText = `${logCounter} events`;
+    }
+
+    function clearLogs() {
+        feedLogs.innerHTML = `
+            <div id="emptyLogState" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                <i class="fa-solid fa-face-viewfinder" style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                <p>Position your face in front of the camera to begin automatic attendance tracking.</p>
+            </div>
+        `;
+        logCounter = 0;
+        document.getElementById('logCount').innerText = "0 events";
+    }
+
+    // Auto-start camera when page loads
+    window.addEventListener('load', startCamera);
+    window.addEventListener('beforeunload', stopCamera);
+</script>
+{% endblock %}

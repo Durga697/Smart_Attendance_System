@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Register Student - Smart Attendance System{% endblock %}
+
+{% block head %}
+<style>
+    .form-card {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .form-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-subtitle {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+    }
+
+    .file-dropzone {
+        border: 2px dashed var(--border-glass);
+        border-radius: var(--radius-md);
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        background: rgba(15, 23, 42, 0.4);
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .file-dropzone:hover, .file-dropzone.dragover {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.08);
+    }
+
+    .file-dropzone input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .dropzone-icon {
+        font-size: 2.5rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .dropzone-text {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .dropzone-hint {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    .preview-container {
+        margin-top: 1.5rem;
+        display: none;
+        text-align: center;
+    }
+
+    .image-preview {
+        max-width: 220px;
+        max-height: 220px;
+        border-radius: var(--radius-md);
+        border: 2px solid var(--primary);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card form-card">
+    <div class="form-title"><i class="fa-solid fa-user-plus me-2" style="color: var(--primary);"></i> Register New Student</div>
+    <p class="form-subtitle">Enter student details and upload a photo for 128-d face encoding extraction.</p>
+
+    <form action="{{ url_for('register_post') }}" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label class="form-label" for="name"><i class="fa-solid fa-id-card me-2"></i> Full Name</label>
+            <input type="text" id="name" name="name" class="form-control" placeholder="e.g. John Doe" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="student_id"><i class="fa-solid fa-hashtag me-2"></i> Student ID</label>
+            <input type="text" id="student_id" name="student_id" class="form-control" placeholder="e.g. STU1001" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><i class="fa-solid fa-camera me-2"></i> Facial Photo</label>
+            <div class="file-dropzone" id="dropzone">
+                <input type="file" id="image" name="image" accept="image/png, image/jpeg, image/jpg" required onchange="handleFileSelect(this)">
+                <div class="dropzone-icon">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div class="dropzone-text">Click or drag & drop student image</div>
+                <div class="dropzone-hint">Supports PNG, JPG, JPEG (Must contain a clear face)</div>
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <img id="imagePreview" class="image-preview" src="#" alt="Student Image Preview">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                <i class="fa-solid fa-check"></i> Complete Registration
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function handleFileSelect(input) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = e.target.result;
+                document.getElementById('previewContainer').style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    const dropzone = document.getElementById('dropzone');
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+        }, false);
+    });
+</script>
+{% endblock %}

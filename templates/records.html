@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Records - Smart Attendance System{% endblock %}
+
+{% block head %}
+<style>
+    .records-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .records-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .filter-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) auto;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .table-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .custom-table th {
+        background: rgba(15, 23, 42, 0.8);
+        padding: 1.1rem 1.5rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border-glass);
+    }
+
+    .custom-table td {
+        padding: 1.1rem 1.5rem;
+        font-size: 0.95rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--text-main);
+    }
+
+    .custom-table tbody tr {
+        transition: var(--transition);
+    }
+
+    .custom-table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .student-id-badge {
+        font-family: monospace;
+        background: rgba(99, 102, 241, 0.15);
+        color: #a5b4fc;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .date-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-main);
+        font-weight: 500;
+    }
+
+    .time-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(16, 185, 129, 0.15);
+        color: #6ee7b7;
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .empty-table {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-muted);
+    }
+
+    .empty-table i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="records-header">
+    <div>
+        <h1 class="records-title"><i class="fa-solid fa-clipboard-list me-2" style="color: var(--primary);"></i> Attendance Logs</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">View and export attendance records filtered by date or student</p>
+    </div>
+    <a href="{{ url_for('export_csv', date=filter_date, student=filter_student) }}" class="btn btn-success">
+        <i class="fa-solid fa-file-csv"></i> Export to CSV
+    </a>
+</div>
+
+<!-- Search & Filter Controls -->
+<div class="filter-card">
+    <form action="{{ url_for('records') }}" method="GET" class="filter-form">
+        <div>
+            <label class="form-label" for="student"><i class="fa-solid fa-magnifying-glass me-1"></i> Student ID / Name</label>
+            <input type="text" id="student" name="student" class="form-control" placeholder="Search by name or ID..." value="{{ filter_student }}">
+        </div>
+
+        <div>
+            <label class="form-label" for="date"><i class="fa-solid fa-calendar me-1"></i> Filter Date</label>
+            <input type="date" id="date" name="date" class="form-control" value="{{ filter_date }}">
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-filter"></i> Apply Filter
+            </button>
+            {% if filter_date or filter_student %}
+            <a href="{{ url_for('records') }}" class="btn btn-secondary" title="Clear Filters">
+                <i class="fa-solid fa-xmark"></i> Clear
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Records Data Table -->
+<div class="table-container">
+    {% if records %}
+    <table class="custom-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Student ID</th>
+                <th>Student Name</th>
+                <th>Date</th>
+                <th>Time Logged</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td style="color: var(--text-muted);">{{ loop.index }}</td>
+                <td><span class="student-id-badge">{{ record[0] }}</span></td>
+                <td style="font-weight: 600;">{{ record[1] }}</td>
+                <td>
+                    <span class="date-badge">
+                        <i class="fa-regular fa-calendar" style="color: var(--primary);"></i> {{ record[2] }}
+                    </span>
+                </td>
+                <td>
+                    <span class="time-badge">
+                        <i class="fa-regular fa-clock"></i> {{ record[3] }}
+                    </span>
+                </td>
+                <td>
+                    <span style="color: var(--success); font-weight: 600; font-size: 0.85rem;">
+                        <i class="fa-solid fa-circle-check"></i> Present
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-table">
+        <i class="fa-solid fa-folder-open"></i>
+        <h3>No attendance records found</h3>
+        <p>Try adjusting your search query or start marking attendance with live recognition.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
