@@ -4,83 +4,74 @@ This document provides a step-by-step guide to deploying the **Smart Attendance 
 
 ---
 
-## 🚀 Option 1: One-Click Deploy via Render Blueprint (Recommended)
+## 🛠️ Essential Render Settings
 
-Render Blueprints use the included [`render.yaml`](file:///c:/Users/Admin/SAM/Smart_Attendance_System/project/render.yaml) file to automatically provision your Docker container web service and persistent disk.
+Render can deploy this application using **Native Python** or **Docker**.
 
-1. **Push your repository to GitHub / GitLab**.
+### Option A: Native Python Web Service (Standard)
+
+When deploying as a standard Python service on Render:
+
+1. **Python Version**: `3.10.13` (Set via `PYTHON_VERSION=3.10.13` environment variable or `runtime.txt`). *Python 3.10 is required for pre-built dlib wheel compatibility.*
+2. **Build Command**: `./build.sh`
+3. **Start Command**: `gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 app:app`
+
+> **Why `./build.sh`?**
+> Building `dlib` on Linux requires installing `cmake` prior to running `pip install -r requirements.txt`. The included `./build.sh` automatically installs build tools and `cmake` first.
+
+---
+
+### Option B: One-Click Deploy via Render Blueprint
+
+Render Blueprints use the included [`render.yaml`](file:///c:/Users/Admin/SAM/Smart_Attendance_System/project/render.yaml) file to automatically provision your web service and persistent disk.
+
+1. Push your repository to GitHub.
 2. Log into your [Render Dashboard](https://dashboard.render.com/).
-3. Click **New +** in the top right corner and select **Blueprint**.
-4. Connect your GitHub repository containing this project.
-5. Render will detect `render.yaml` and configure:
-   - Service Name: `smart-attendance-system`
-   - Runtime: `Docker`
+3. Click **New +** -> **Blueprint**.
+4. Connect your GitHub repository (`Durga697/Smart_Attendance_System`).
+5. Render detects `render.yaml` and configures:
+   - Build Command: `./build.sh`
+   - Start Command: `gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 app:app`
+   - Python Version: `3.10.13`
    - Persistent Disk: `/var/data` (1 GB)
-   - Auto-generated `SECRET_KEY`
 6. Click **Apply**.
-7. Wait for Docker build to complete (usually 3–5 minutes). Your app is now live!
 
 ---
 
-## 🛠️ Option 2: Manual Web Service Setup on Render
+### Option C: Docker Web Service
 
-If you prefer setting up the web service manually through the Render Dashboard interface:
-
-### Step 1: Create New Web Service
-1. Go to [Render Dashboard](https://dashboard.render.com/).
-2. Click **New +** -> **Web Service**.
-3. Connect your repository.
-
-### Step 2: Configure Service Settings
-- **Name**: `smart-attendance-system`
-- **Region**: Choose the closest location to your users.
-- **Branch**: `main` (or `master`)
-- **Root Directory**: `project` (if your project files are inside `project/`, otherwise leave blank)
-- **Runtime**: **Docker** (Select Docker so cmake, dlib, and OpenCV system dependencies build automatically)
+If you set **Environment** to **Docker** in Render Dashboard:
 - **Dockerfile Path**: `./Dockerfile`
-- **Instance Type**: `Free` (or `Starter` for higher speed)
+- No build command or start command needed (handled by `Dockerfile`).
 
-### Step 3: Set Environment Variables
-Under the **Environment** section, add the following environment variables:
+---
 
-| Key | Recommended Value / Description |
-| :--- | :--- |
-| `SECRET_KEY` | Click **Generate** or enter a strong secret key string |
-| `ADMIN_USERNAME` | Your preferred admin username (default: `admin`) |
-| `ADMIN_PASSWORD` | Your preferred admin password (default: `admin123`) |
-| `DATA_DIR` | `/var/data` (if attaching a persistent disk) or leave default |
-| `FLASK_DEBUG` | `False` |
+## 🔑 Environment Variables Reference
 
-### Step 4: Add Persistent Disk (Optional but Recommended)
-To preserve the SQLite database (`attendance.db`) and uploaded student photos across app redeploys:
-1. Under your service settings, navigate to **Disks**.
+Add these in Render under **Environment**:
+
+| Key | Recommended Value | Purpose |
+| :--- | :--- | :--- |
+| `PYTHON_VERSION` | `3.10.13` | Ensures compatible Python 3.10 binary wheels for dlib |
+| `SECRET_KEY` | Generate random secret | Flask session encryption |
+| `ADMIN_USERNAME` | `admin` | Admin dashboard login username |
+| `ADMIN_PASSWORD` | `admin123` | Admin dashboard login password |
+| `DATA_DIR` | `/var/data` | Path for SQLite DB & photo uploads on persistent disk |
+
+---
+
+## 💾 Persistent Disk Configuration
+
+To preserve student records (`attendance.db`) and uploaded images:
+1. In Render Web Service settings, click **Disks**.
 2. Click **Add Disk**.
-3. Set **Name**: `attendance-data`
-4. Set **Mount Path**: `/var/data`
-5. Set **Size**: `1 GB`
-6. Ensure environment variable `DATA_DIR` is set to `/var/data`.
+3. **Name**: `attendance-data`
+4. **Mount Path**: `/var/data`
+5. **Size**: `1 GB`
+6. Set `DATA_DIR` environment variable to `/var/data`.
 
 ---
 
-## 📷 Webcam / Camera Permission Note for WebRTC
+## 📷 Webcam / Camera Access Note
 
-Modern web browsers (Chrome, Edge, Safari, Firefox) **only allow camera access over HTTPS or localhost**.
-
-- When deployed on Render, your app receives a secure `https://smart-attendance-system.onrender.com` URL automatically.
-- Users accessing the app over HTTPS can click **Start Camera** in the browser, grant camera access, and mark attendance seamlessly.
-
----
-
-## 🔍 Health Check & Troubleshooting
-
-### Health Check Endpoint
-The app includes a built-in health check route at `/health`:
-```
-GET /health
-Response: {"status": "healthy", "timestamp": "2026-09-11T..."}
-```
-
-### Common Issues & Solutions
-1. **Camera Not Accessing**: Ensure you are using `https://` (Render provides SSL automatically).
-2. **Database Resetting on Restart**: Attach a Render Persistent Disk mounted to `/var/data` and set `DATA_DIR=/var/data`.
-3. **Build Timeout**: Ensure **Runtime** is set to `Docker` in Render service settings.
+WebRTC (`navigator.mediaDevices.getUserMedia`) requires **HTTPS**. Render automatically provisions free SSL certificates (`https://your-app.onrender.com`). Users can open the URL in Chrome, Edge, or Safari and grant camera permissions.
