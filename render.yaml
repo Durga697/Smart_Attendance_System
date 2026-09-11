@@ -1,11 +1,20 @@
 services:
   - type: web
     name: smart-attendance-system
-    env: python
-    buildCommand: bash build.sh
-    startCommand: gunicorn app:app
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.13
       - key: SECRET_KEY
         generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        value: admin123
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: attendance-data
+      mountPath: /var/data
+      sizeGB: 1

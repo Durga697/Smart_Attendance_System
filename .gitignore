@@ -3,20 +3,27 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual Environment
+# Virtual environments
 .venv/
-env/
 venv/
 ENV/
+env/
 
-# Database & Uploads
+# Environment variables
+.env
+
+# Database files
+*.db
 attendance.db
+
+# Static upload images (keep folder structure)
 static/uploads/*
 !static/uploads/.gitkeep
 
-# Environment variables & local configs
-.env
-*.log
+# IDE files
+.vscode/
+.idea/
+*.swp
 
 # OS generated files
 .DS_Store

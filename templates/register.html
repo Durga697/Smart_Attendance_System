@@ -2,153 +2,94 @@
 
 {% block title %}Register Student - Smart Attendance System{% endblock %}
 
-{% block head %}
-<style>
-    .form-card {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-
-    .form-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-subtitle {
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        margin-bottom: 2rem;
-    }
-
-    .file-dropzone {
-        border: 2px dashed var(--border-glass);
-        border-radius: var(--radius-md);
-        padding: 2.5rem 1.5rem;
-        text-align: center;
-        background: rgba(15, 23, 42, 0.4);
-        cursor: pointer;
-        transition: var(--transition);
-        position: relative;
-    }
-
-    .file-dropzone:hover, .file-dropzone.dragover {
-        border-color: var(--primary);
-        background: rgba(99, 102, 241, 0.08);
-    }
-
-    .file-dropzone input[type="file"] {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        cursor: pointer;
-    }
-
-    .dropzone-icon {
-        font-size: 2.5rem;
-        color: var(--primary);
-        margin-bottom: 1rem;
-    }
-
-    .dropzone-text {
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-
-    .dropzone-hint {
-        color: var(--text-muted);
-        font-size: 0.85rem;
-    }
-
-    .preview-container {
-        margin-top: 1.5rem;
-        display: none;
-        text-align: center;
-    }
-
-    .image-preview {
-        max-width: 220px;
-        max-height: 220px;
-        border-radius: var(--radius-md);
-        border: 2px solid var(--primary);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-        object-fit: cover;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="card form-card">
-    <div class="form-title"><i class="fa-solid fa-user-plus me-2" style="color: var(--primary);"></i> Register New Student</div>
-    <p class="form-subtitle">Enter student details and upload a photo for 128-d face encoding extraction.</p>
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-user-plus me-2"></i>Register New Student
+        </h2>
+    </div>
+</div>
 
-    <form action="{{ url_for('register_post') }}" method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label class="form-label" for="name"><i class="fa-solid fa-id-card me-2"></i> Full Name</label>
-            <input type="text" id="name" name="name" class="form-control" placeholder="e.g. John Doe" required>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label" for="student_id"><i class="fa-solid fa-hashtag me-2"></i> Student ID</label>
-            <input type="text" id="student_id" name="student_id" class="form-control" placeholder="e.g. STU1001" required>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label"><i class="fa-solid fa-camera me-2"></i> Facial Photo</label>
-            <div class="file-dropzone" id="dropzone">
-                <input type="file" id="image" name="image" accept="image/png, image/jpeg, image/jpg" required onchange="handleFileSelect(this)">
-                <div class="dropzone-icon">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                </div>
-                <div class="dropzone-text">Click or drag & drop student image</div>
-                <div class="dropzone-hint">Supports PNG, JPG, JPEG (Must contain a clear face)</div>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Student Name</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="student_id" class="form-label">Student ID</label>
+                                <input type="text" class="form-control" id="student_id" name="student_id" required>
+                                <div class="form-text">Must be unique for each student</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="image" class="form-label">Student Photo</label>
+                                <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+                                <div class="form-text">Upload a clear photo showing the student's face</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Photo Preview</label>
+                                <div id="imagePreview" class="border rounded p-3 text-center" style="min-height: 200px;">
+                                    <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                    <p class="text-muted">No image selected</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Important:</strong> Make sure the photo clearly shows the student's face. 
+                                The system will extract facial features for recognition purposes.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Register Student
+                        </button>
+                    </div>
+                </form>
             </div>
-
-            <div class="preview-container" id="previewContainer">
-                <img id="imagePreview" class="image-preview" src="#" alt="Student Image Preview">
-            </div>
         </div>
-
-        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-            <button type="submit" class="btn btn-primary" style="flex: 1;">
-                <i class="fa-solid fa-check"></i> Complete Registration
-            </button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function handleFileSelect(input) {
-        const file = input.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.getElementById('imagePreview');
-                preview.src = e.target.result;
-                document.getElementById('previewContainer').style.display = 'block';
-            }
-            reader.readAsDataURL(file);
-        }
+document.getElementById('image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" class="img-fluid rounded" style="max-height: 200px;">`;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.innerHTML = `
+            <i class="fas fa-image fa-3x text-muted mb-2"></i>
+            <p class="text-muted">No image selected</p>
+        `;
     }
-
-    const dropzone = document.getElementById('dropzone');
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropzone.classList.add('dragover');
-        }, false);
-    });
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-        }, false);
-    });
+});
 </script>
 {% endblock %}
